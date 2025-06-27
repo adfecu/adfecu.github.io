@@ -87,7 +87,6 @@ thead {
 
 table tr {
     background: var(--table-bg);
-    border-bottom: 2px solid var(--table-border);
     transition: background-color 0.3s ease;
 }
 
@@ -96,7 +95,7 @@ table td {
     padding: 10px 20px;
     color: var(--text-color);
     border-color: var(--table-border);
-    border-right: 2px solid var(--table-border);
+    border: 2px solid var(--table-border);
 }
 
 /* Empty table cells */
