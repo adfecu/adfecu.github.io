@@ -6,6 +6,7 @@
     --table-border: #dddddd;
     --link-color: #0066cc;
     --link-hover: #004499;
+    --table-header-bg: #f0f0f0;
 }
 
 /* Dark mode variables */
@@ -17,6 +18,7 @@
         --table-border: #404040;
         --link-color: #66b3ff;
         --link-hover: #99ccff;
+        --table-header-bg: #23272b;
     }
 }
 
@@ -80,11 +82,6 @@ table {
     position: relative;
 }
 
-thead {
-    position: sticky;
-    top: 0;
-}
-
 table tr {
     background: var(--table-bg);
     transition: background-color 0.3s ease;
@@ -96,6 +93,11 @@ table td {
     color: var(--text-color);
     border-color: var(--table-border);
     border: 2px solid var(--table-border);
+}
+
+table th {
+    border-bottom: 2px solid var(--table-border);
+    background-color: var(--table-header-bg, #f0f0f0);
 }
 
 /* Empty table cells */
