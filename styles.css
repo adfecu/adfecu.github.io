@@ -134,6 +134,7 @@ table tbody tr td:empty:before {
 
     table th, table td {
         padding: 5px;
+        border-width: 2px;
     }
 
     p {
