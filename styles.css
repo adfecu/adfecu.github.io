@@ -96,6 +96,7 @@ table td {
     padding: 10px 20px;
     color: var(--text-color);
     border-color: var(--table-border);
+    border-right: 2px solid var(--table-border);
 }
 
 /* Empty table cells */
