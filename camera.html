@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Style for the video to fill the screen */
+        #camera-feed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 10;
+        }
+        /* The main overlay container */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+        }
+        /* This creates the semi-transparent cutout effect for the ID frame */
+        .cutout-mask {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                ellipse at center,
+                transparent 0%,
+                transparent 50%,
+                rgba(0, 0, 0, 0.7) 51%
+            );
+            /* A more direct way to create the cutout with box-shadow */
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.7);
+        }
+        /* The visible border for the ID frame */
+        .id-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 480px;
+            aspect-ratio: 1.586 / 1; /* Standard ID card ratio */
+            border: 2px dashed white;
+            border-radius: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        .id-frame.success {
+            border-color: #4ade80; /* green-400 */
+        }
+        .feedback-bubble {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-black overflow-hidden">
+
+    <!-- Camera feed will be projected here -->
+    <video id="camera-feed" autoplay playsinline></video>
+
+    <!-- UI Overlay -->
+    <div id="overlay" class="overlay flex flex-col items-center justify-center p-6 text-white text-center">
+        <!-- Cutout effect -->
+        <div class="cutout-mask"></div>
+        
+        <!-- The visible guiding frame -->
+        <div id="id-frame" class="id-frame"></div>
+
+        <!-- All UI elements are positioned relative to the main overlay -->
+        <div class="relative z-30 flex flex-col items-center justify-between h-full w-full">
+            
+            <!-- Top instructional text -->
+            <div class="w-full">
+                <h1 id="main-instruction" class="text-2xl font-bold mt-16">Position Front of ID</h1>
+                <p id="sub-instruction" class="text-lg opacity-80">Fit it inside the frame</p>
+            </div>
+
+            <!-- Center feedback bubble -->
+            <div id="feedback-bubble" class="feedback-bubble bg-black bg-opacity-50 backdrop-blur-sm px-4 py-2 rounded-full font-medium text-lg opacity-0 transform scale-95">
+                <span id="feedback-text"></span>
+            </div>
+
+            <!-- Bottom elements -->
+            <div class="w-full mb-8">
+                <div id="loader" class="hidden mx-auto h-12 w-12 animate-spin rounded-full border-4 border-solid border-white border-t-transparent"></div>
+                <button id="start-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-full text-xl shadow-lg">
+                    Start Scan
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Success Message -->
+    <div id="success-message" class="hidden absolute inset-0 bg-green-500 z-40 flex flex-col items-center justify-center text-white p-8">
+        <svg class="w-24 h-24 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <h2 class="text-3xl font-bold">ID Captured!</h2>
+        <p class="text-xl mt-2">Verification complete.</p>
+    </div>
+
+
+    <script>
+        const videoElement = document.getElementById('camera-feed');
+        const startButton = document.getElementById('start-button');
+        const overlay = document.getElementById('overlay');
+        const mainInstruction = document.getElementById('main-instruction');
+        const subInstruction = document.getElementById('sub-instruction');
+        const feedbackBubble = document.getElementById('feedback-bubble');
+        const feedbackText = document.getElementById('feedback-text');
+        const idFrame = document.getElementById('id-frame');
+        const loader = document.getElementById('loader');
+        const successMessage = document.getElementById('success-message');
+
+        let stream;
+
+        // Function to start the camera
+        async function startCamera() {
+            try {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment', // Use the rear camera
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                });
+                videoElement.srcObject = stream;
+                await videoElement.play();
+                startButton.classList.add('hidden');
+                runScanSimulation(); // Start the simulated scan process
+            } catch (error) {
+                console.error("Error accessing camera:", error);
+                mainInstruction.textContent = 'Camera Error';
+                subInstruction.textContent = 'Please allow camera access in your browser settings.';
+                startButton.classList.remove('hidden');
+            }
+        }
+
+        // Function to show feedback to the user
+        function showFeedback(message) {
+            feedbackText.textContent = message;
+            feedbackBubble.classList.remove('opacity-0', 'scale-95');
+        }
+
+        // Function to hide feedback
+        function hideFeedback() {
+            feedbackBubble.classList.add('opacity-0', 'scale-95');
+        }
+
+        // Simulate the real-time analysis and auto-capture process
+        function runScanSimulation() {
+            hideFeedback();
+            mainInstruction.textContent = 'Position Front of ID';
+            subInstruction.textContent = 'Fit it inside the frame';
+            idFrame.classList.remove('success');
+
+            // Simulate a series of checks
+            setTimeout(() => {
+                showFeedback('Move a bit closer');
+            }, 2000);
+
+            setTimeout(() => {
+                showFeedback('Hold steady...');
+            }, 4500);
+
+            setTimeout(() => {
+                hideFeedback();
+                idFrame.classList.add('success');
+                mainInstruction.textContent = 'Scanning...';
+                subInstruction.textContent = 'Perfect, hold it right there.';
+                loader.classList.remove('hidden');
+            }, 6500);
+            
+            // Simulate capture and move to the next step
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                mainInstruction.textContent = 'Flip to the Back';
+                subInstruction.textContent = 'Now position the back of your ID';
+                idFrame.classList.remove('success');
+            }, 9000);
+            
+            // Simulate final capture
+            setTimeout(() => {
+                showFeedback('Almost done...');
+            }, 11000);
+
+            setTimeout(() => {
+                hideFeedback();
+                idFrame.classList.add('success');
+                mainInstruction.textContent = 'Capturing Back...';
+                subInstruction.textContent = 'Excellent!';
+                loader.classList.remove('hidden');
+            }, 13000);
+
+            // Show final success message
+            setTimeout(() => {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                overlay.classList.add('hidden');
+                successMessage.classList.remove('hidden');
+            }, 15000);
+        }
+
+        // Event Listeners
+        startButton.addEventListener('click', startCamera);
+
+        // Initial state
+        overlay.classList.remove('hidden');
+        successMessage.classList.add('hidden');
+        loader.classList.add('hidden');
+    </script>
+
+</body>
+</html>
