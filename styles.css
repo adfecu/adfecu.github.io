@@ -48,6 +48,17 @@ h1, h2, h3, h4, h5, h6 {
     text-align: center;
 }
 
+section h2 {
+    text-align: left;
+    border-bottom: 1px solid var(--table-border);
+    padding-bottom: 5px;
+    margin-top: 40px;
+}
+
+section p {
+    line-height: 1.6;
+}
+
 p {
     text-align: left;
 }
